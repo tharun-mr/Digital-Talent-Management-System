@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyUser = async () => {
     try {
-      const { data } = await authAPI.getMe();
+      const { data } = await api.get('/auth/me');
       setUser(data.user);
       localStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const { data } = await authAPI.register(userData);
+      const { data } = await api.post('/auth/register', userData);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const { data } = await authAPI.login(credentials);
+      const { data } = await api.post('/auth/login', credentials);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);

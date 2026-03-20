@@ -53,7 +53,9 @@ exports.register = async (req, res) => {
   }
 };
 
-
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -106,6 +108,9 @@ exports.login = async (req, res) => {
   }
 };
 
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -118,6 +123,36 @@ exports.getMe = async (req, res) => {
         email: user.email,
         role: user.role
       }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      error: 'Server Error'
+    });
+  }
+};
+
+// @desc    Get all users (Admin only)
+// @route   GET /api/auth/users
+// @access  Private/Admin
+exports.getUsers = async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to access this resource'
+      });
+    }
+    
+    // Get all users except passwords
+    const users = await User.find().select('-password').sort('name');
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
     });
   } catch (error) {
     console.error(error);

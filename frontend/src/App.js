@@ -2,17 +2,23 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TaskProvider } from './contexts/TaskContext'; // Add this import
 import Navbar from './components/Navbar';
 import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import Tasks from './components/Tasks'; // Add this import
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="container">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
   }
   
   if (!user) {
@@ -27,7 +33,11 @@ const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="container">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
+    );
   }
   
   if (user) {
@@ -65,6 +75,13 @@ function AppContent() {
             <Dashboard />
           </ProtectedRoute>
         } />
+        
+        {/* Add Tasks Route */}
+        <Route path="/tasks" element={
+          <ProtectedRoute>
+            <Tasks />
+          </ProtectedRoute>
+        } />
       </Routes>
     </>
   );
@@ -74,17 +91,32 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-          }}
-        />
-        <AppContent />
+        <TaskProvider> {/* Wrap with TaskProvider */}
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#363636',
+                color: '#fff',
+                borderRadius: '0.5rem',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: 'white',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: 'white',
+                },
+              },
+            }}
+          />
+          <AppContent />
+        </TaskProvider>
       </AuthProvider>
     </Router>
   );

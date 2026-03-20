@@ -11,6 +11,7 @@ connectDB();
 
 // Route files
 const auth = require('./routes/authRoutes');
+const tasks = require('./routes/taskRoutes'); // Make sure this line exists
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(cors());
 
 // Mount routers
 app.use('/api/auth', auth);
+app.use('/api/tasks', tasks); // Make sure this line exists
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -41,6 +43,5 @@ const server = app.listen(PORT, () => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
   console.log(`Error: ${err.message}`);
-  // Close server & exit process
   server.close(() => process.exit(1));
 });
