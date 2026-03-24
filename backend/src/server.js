@@ -11,7 +11,7 @@ connectDB();
 
 // Route files
 const auth = require('./routes/authRoutes');
-const tasks = require('./routes/taskRoutes'); // Make sure this line exists
+const tasks = require('./routes/taskRoutes');
 
 const app = express();
 
@@ -23,7 +23,7 @@ app.use(cors());
 
 // Mount routers
 app.use('/api/auth', auth);
-app.use('/api/tasks', tasks); // Make sure this line exists
+app.use('/api/tasks', tasks);
 
 // Error handler
 app.use((err, req, res, next) => {

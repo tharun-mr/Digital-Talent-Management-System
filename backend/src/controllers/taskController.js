@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const User = require('../models/User');
+const Activity = require('../models/Activity'); // Add this import
 
 // @desc    Create a new task (Admin only)
 // @route   POST /api/tasks
@@ -25,6 +26,15 @@ exports.createTask = async (req, res) => {
       dueDate,
       priority,
       category
+    });
+
+    // Track task creation activity
+    await Activity.create({
+      user: req.user.id,
+      action: 'task_created',
+      details: `Created task "${title}" assigned to ${user.name}`,
+      ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+      userAgent: req.headers['user-agent'] || ''
     });
 
     const populatedTask = await Task.findById(task._id)
@@ -61,6 +71,17 @@ exports.getTasks = async (req, res) => {
       .populate('assignedTo', 'name email')
       .populate('assignedBy', 'name email')
       .sort('-createdAt');
+
+    // Track task view activity (only for users, not admins to avoid spam)
+    if (req.user.role !== 'admin') {
+      await Activity.create({
+        user: req.user.id,
+        action: 'task_viewed',
+        details: `Viewed ${tasks.length} tasks`,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+        userAgent: req.headers['user-agent'] || ''
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -134,8 +155,28 @@ exports.updateTask = async (req, res) => {
       });
     }
 
+    // Track status change activity
+    if (req.body.status && req.body.status !== task.status) {
+      await Activity.create({
+        user: req.user.id,
+        action: 'task_updated',
+        details: `Changed task "${task.title}" status from ${task.status} to ${req.body.status}`,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+        userAgent: req.headers['user-agent'] || ''
+      });
+    }
+
     if (req.body.status === 'completed' && task.status !== 'completed') {
       req.body.completedAt = Date.now();
+      
+      // Track task completion activity
+      await Activity.create({
+        user: req.user.id,
+        action: 'task_completed',
+        details: `Completed task: ${task.title}`,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+        userAgent: req.headers['user-agent'] || ''
+      });
     }
 
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
@@ -176,6 +217,15 @@ exports.deleteTask = async (req, res) => {
         error: 'Not authorized to delete tasks'
       });
     }
+
+    // Track task deletion activity
+    await Activity.create({
+      user: req.user.id,
+      action: 'task_deleted',
+      details: `Deleted task: ${task.title} (was assigned to ${task.assignedTo})`,
+      ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+      userAgent: req.headers['user-agent'] || ''
+    });
 
     await task.deleteOne();
 
@@ -219,6 +269,15 @@ exports.addComment = async (req, res) => {
     });
 
     await task.save();
+
+    // Track comment activity
+    await Activity.create({
+      user: req.user.id,
+      action: 'comment_added',
+      details: `Added comment to task: ${task.title}`,
+      ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+      userAgent: req.headers['user-agent'] || ''
+    });
 
     const updatedTask = await Task.findById(req.params.id)
       .populate('comments.user', 'name email');
