@@ -50,7 +50,6 @@ const Dashboard = () => {
           color: 'from-blue-500 to-blue-600',
           bgColor: 'bg-blue-50',
           textColor: 'text-blue-600',
-          change: '+12%',
           changeType: 'increase'
         },
         { 
@@ -60,7 +59,6 @@ const Dashboard = () => {
           color: 'from-green-500 to-green-600',
           bgColor: 'bg-green-50',
           textColor: 'text-green-600',
-          change: '+8%',
           changeType: 'increase'
         },
         { 
@@ -70,7 +68,6 @@ const Dashboard = () => {
           color: 'from-yellow-500 to-yellow-600',
           bgColor: 'bg-yellow-50',
           textColor: 'text-yellow-600',
-          change: '+3%',
           changeType: 'increase'
         },
         { 
@@ -80,7 +77,6 @@ const Dashboard = () => {
           color: 'from-red-500 to-red-600',
           bgColor: 'bg-red-50',
           textColor: 'text-red-600',
-          change: '-2%',
           changeType: 'decrease'
         },
       ];

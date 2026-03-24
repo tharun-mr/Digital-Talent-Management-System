@@ -9,29 +9,48 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add token
+// ✅ Request interceptor (FIXED)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
+
+    // 🚫 Skip token for login & register
+    const isAuthRoute =
+      config.url.includes('/auth/login') ||
+      config.url.includes('/auth/register');
+
+    if (token && !isAuthRoute) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// ✅ Response interceptor (IMPROVED)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    if (error.response) {
+      const { status, config } = error.response;
+
+      // 🚫 Don't logout on login/register failure
+      const isAuthRoute =
+        config.url.includes('/auth/login') ||
+        config.url.includes('/auth/register');
+
+      if (status === 401 && !isAuthRoute) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+
+        // Redirect only if not already on login page
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
     }
+
     return Promise.reject(error);
   }
 );

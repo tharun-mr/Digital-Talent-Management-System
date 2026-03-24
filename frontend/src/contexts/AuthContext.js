@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       localStorage.setItem('user', JSON.stringify(data.user));
     } catch (error) {
+      console.error('Verify user error:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
+      console.error('Register error:', error);
       const message = error.response?.data?.error || 'Registration failed';
       toast.error(message);
       return { success: false, error: message };
@@ -59,14 +61,20 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      console.log('Making login request to:', `${api.defaults.baseURL}/auth/login`);
       const { data } = await api.post('/auth/login', credentials);
+      console.log('Login response:', data);
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       toast.success('Login successful!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.error || 'Login failed';
+      console.error('Login error details:', error);
+      console.error('Error response:', error.response);
+      
+      const message = error.response?.data?.error || 'Login failed. Please check your credentials.';
       toast.error(message);
       return { success: false, error: message };
     }
