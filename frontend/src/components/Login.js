@@ -95,7 +95,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300 bg-white text-gray-900"
-                  placeholder="admin@talent.com"
+                  placeholder="Enter your E-mail Address"
                   required
                 />
               </div>
