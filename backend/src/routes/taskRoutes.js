@@ -10,14 +10,14 @@ const {
   getTasksByStatus,
   getTaskStats
 } = require('../controllers/taskController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 // All routes require authentication
 router.use(protect);
 
 router.route('/')
   .get(getTasks)
-  .post(createTask);
+  .post(authorize('admin'), createTask); // Only admin can create tasks
 
 router.get('/stats/overview', getTaskStats);
 router.get('/status/:status', getTasksByStatus);
@@ -25,7 +25,7 @@ router.get('/status/:status', getTasksByStatus);
 router.route('/:id')
   .get(getTask)
   .put(updateTask)
-  .delete(deleteTask);
+  .delete(authorize('admin'), deleteTask); // Only admin can delete tasks
 
 router.post('/:id/comments', addComment);
 

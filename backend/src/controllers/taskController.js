@@ -1,6 +1,6 @@
 const Task = require('../models/Task');
 const User = require('../models/User');
-const Activity = require('../models/Activity'); // Add this import
+const Activity = require('../models/Activity');
 
 // @desc    Create a new task (Admin only)
 // @route   POST /api/tasks
@@ -134,7 +134,7 @@ exports.getTask = async (req, res) => {
   }
 };
 
-// @desc    Update task
+// @desc    Update task with role-based restrictions
 // @route   PUT /api/tasks/:id
 // @access  Private
 exports.updateTask = async (req, res) => {
@@ -148,28 +148,73 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    if (req.user.role !== 'admin' && task.assignedTo.toString() !== req.user.id) {
+    const isAdmin = req.user.role === 'admin';
+    const isAssignedUser = task.assignedTo.toString() === req.user.id;
+
+    // Check authorization
+    if (!isAdmin && !isAssignedUser) {
       return res.status(403).json({
         success: false,
         error: 'Not authorized to update this task'
       });
     }
 
+    // Separate fields that can be updated by different roles
+    let updateData = {};
+    
+    if (isAdmin) {
+      // Admin can edit all fields EXCEPT status
+      // Admin cannot change status (start/complete tasks for others)
+      const { status, ...adminEditableFields } = req.body;
+      updateData = adminEditableFields;
+      
+      // If admin tries to change status, prevent it
+      if (req.body.status) {
+        return res.status(403).json({
+          success: false,
+          error: 'Admin cannot change task status. Only the assigned user can start or complete tasks.'
+        });
+      }
+    } 
+    
+    if (isAssignedUser) {
+      // Assigned user can ONLY update status
+      // They cannot edit other task details
+      const allowedFields = ['status'];
+      updateData = {};
+      
+      // Only allow status updates
+      Object.keys(req.body).forEach(key => {
+        if (allowedFields.includes(key)) {
+          updateData[key] = req.body[key];
+        }
+      });
+      
+      // If assigned user tries to update non-status fields, prevent it
+      const nonStatusFields = Object.keys(req.body).filter(key => key !== 'status');
+      if (nonStatusFields.length > 0) {
+        return res.status(403).json({
+          success: false,
+          error: 'Assigned users can only update task status. Only admin can edit task details.'
+        });
+      }
+    }
+
     // Track status change activity
-    if (req.body.status && req.body.status !== task.status) {
+    if (updateData.status && updateData.status !== task.status) {
       await Activity.create({
         user: req.user.id,
         action: 'task_updated',
-        details: `Changed task "${task.title}" status from ${task.status} to ${req.body.status}`,
+        details: `Changed task "${task.title}" status from ${task.status} to ${updateData.status}`,
         ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
         userAgent: req.headers['user-agent'] || ''
       });
     }
 
-    if (req.body.status === 'completed' && task.status !== 'completed') {
-      req.body.completedAt = Date.now();
+    // Track task completion
+    if (updateData.status === 'completed' && task.status !== 'completed') {
+      updateData.completedAt = Date.now();
       
-      // Track task completion activity
       await Activity.create({
         user: req.user.id,
         action: 'task_completed',
@@ -179,7 +224,18 @@ exports.updateTask = async (req, res) => {
       });
     }
 
-    task = await Task.findByIdAndUpdate(req.params.id, req.body, {
+    // Track task start (status changed to in-progress)
+    if (updateData.status === 'in-progress' && task.status === 'pending') {
+      await Activity.create({
+        user: req.user.id,
+        action: 'task_started',
+        details: `Started working on task: ${task.title}`,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+        userAgent: req.headers['user-agent'] || ''
+      });
+    }
+
+    task = await Task.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     });

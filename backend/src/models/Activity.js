@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ActivitySchema = new mongoose.Schema({
+const activitySchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -14,19 +14,19 @@ const ActivitySchema = new mongoose.Schema({
       'logout',
       'task_created',
       'task_updated',
-      'task_completed',
       'task_deleted',
+      'task_completed',
+      'task_started',
       'task_viewed',
       'comment_added',
-      'create',
-      'update',
-      'delete',
-      'view'
+      'user_registered',
+      'user_updated',
+      'user_deleted'
     ]
   },
   details: {
     type: String,
-    default: ''
+    required: true
   },
   ipAddress: {
     type: String,
@@ -35,9 +35,15 @@ const ActivitySchema = new mongoose.Schema({
   userAgent: {
     type: String,
     default: ''
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true
 });
 
-module.exports = mongoose.model('Activity', ActivitySchema);
+// Create index for faster queries
+activitySchema.index({ user: 1, createdAt: -1 });
+activitySchema.index({ action: 1 });
+
+module.exports = mongoose.model('Activity', activitySchema);

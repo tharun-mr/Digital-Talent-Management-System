@@ -71,11 +71,20 @@ const TaskCard = ({ task, onUpdate, onDelete, onComment, onEdit, isAdmin, curren
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
-  // Check if user can edit (admin or assigned user)
-  const canEdit = isAdmin || (currentUserId && task.assignedTo && 
-    (task.assignedTo._id === currentUserId || task.assignedTo === currentUserId));
+  // Check if the current user is the assigned user
+  const isAssignedUser = currentUserId && task.assignedTo && 
+    (task.assignedTo._id === currentUserId || task.assignedTo === currentUserId);
+  
+  // Status change buttons should ONLY show for assigned users who are NOT admin
+  const showStatusButtons = !isAdmin && isAssignedUser && task.status !== 'completed' && task.status !== 'rejected';
+  
+  // Edit button should ONLY show for admin
+  const showEditButton = isAdmin;
+  
+  // Delete button should ONLY show for admin
+  const showDeleteButton = isAdmin;
 
-  // Edit Form
+  // Edit Form - Only admin sees this
   if (isEditing) {
     return (
       <div className="bg-white rounded-xl shadow-md p-5">
@@ -257,54 +266,75 @@ const TaskCard = ({ task, onUpdate, onDelete, onComment, onEdit, isAdmin, curren
         {/* Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
           <div className="flex space-x-2">
-            {task.status !== 'completed' && (
+            {/* Status change buttons - ONLY for assigned users who are NOT admin */}
+            {showStatusButtons && (
               <>
-                <button
-                  onClick={() => handleStatusChange('in-progress')}
-                  className="px-2 py-1 text-xs text-yellow-600 hover:text-yellow-700 bg-yellow-50 rounded hover:bg-yellow-100"
-                >
-                  Start
-                </button>
-                <button
-                  onClick={() => handleStatusChange('completed')}
-                  className="px-2 py-1 text-xs text-green-600 hover:text-green-700 bg-green-50 rounded hover:bg-green-100"
-                >
-                  Complete
-                </button>
+                {task.status === 'pending' && (
+                  <button
+                    onClick={() => handleStatusChange('in-progress')}
+                    className="px-3 py-1.5 text-sm font-medium text-yellow-700 hover:text-yellow-800 bg-yellow-100 rounded-lg hover:bg-yellow-200 transition-colors"
+                  >
+                    Start Task
+                  </button>
+                )}
+                {task.status === 'in-progress' && (
+                  <button
+                    onClick={() => handleStatusChange('completed')}
+                    className="px-3 py-1.5 text-sm font-medium text-green-700 hover:text-green-800 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
+                  >
+                    Mark Complete
+                  </button>
+                )}
               </>
             )}
+            
+            {/* Show status badge for completed/rejected tasks */}
             {task.status === 'completed' && (
               <span className="text-sm text-green-600 flex items-center">
                 <CheckCircleIcon className="h-4 w-4 mr-1" />
                 Completed
               </span>
             )}
+            {task.status === 'rejected' && (
+              <span className="text-sm text-red-600 flex items-center">
+                <ExclamationCircleIcon className="h-4 w-4 mr-1" />
+                Rejected
+              </span>
+            )}
+            
+            {/* Show message for admin when task is pending/in-progress */}
+            {isAdmin && task.status !== 'completed' && task.status !== 'rejected' && (
+              <span className="text-xs text-gray-500">
+                Only assigned user can update status
+              </span>
+            )}
           </div>
           
-          <div className="flex space-x-3">
+          <div className="flex space-x-2">
             <button
               onClick={() => setShowComment(!showComment)}
-              className="text-sm text-primary-600 hover:text-primary-700 flex items-center space-x-1"
+              className="px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors flex items-center space-x-1"
             >
               <ChatBubbleLeftIcon className="h-4 w-4" />
               <span>Comment</span>
             </button>
             
-            {/* Edit Button - Always visible for admin, or if user is assigned */}
-            {canEdit && (
+            {/* Edit Button - Only for Admin */}
+            {showEditButton && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center space-x-1"
               >
                 <PencilIcon className="h-4 w-4" />
-                <span>Edit</span>
+                <span>Edit Task</span>
               </button>
             )}
             
-            {isAdmin && (
+            {/* Delete Button - Only for Admin */}
+            {showDeleteButton && (
               <button
                 onClick={() => onDelete(task._id)}
-                className="text-sm text-red-600 hover:text-red-700 flex items-center space-x-1"
+                className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center space-x-1"
               >
                 <TrashIcon className="h-4 w-4" />
                 <span>Delete</span>
