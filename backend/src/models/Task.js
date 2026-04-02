@@ -74,5 +74,107 @@ const taskSchema = new mongoose.Schema({
 // Index for faster queries
 taskSchema.index({ assignedTo: 1, status: 1 });
 taskSchema.index({ dueDate: 1 });
+taskSchema.index({ category: 1 });
+taskSchema.index({ priority: 1 });
+
+// Virtual for checking if task is overdue
+taskSchema.virtual('isOverdue').get(function() {
+  return this.dueDate < new Date() && this.status !== 'completed';
+});
+
+// Virtual for formatted due date
+taskSchema.virtual('formattedDueDate').get(function() {
+  return this.dueDate.toLocaleDateString();
+});
+
+// Method to update status with completion timestamp
+taskSchema.methods.updateStatus = async function(newStatus) {
+  this.status = newStatus;
+  if (newStatus === 'completed') {
+    this.completedAt = new Date();
+  }
+  return await this.save();
+};
+
+// Static method to get task statistics for a user
+taskSchema.statics.getUserStats = async function(userId) {
+  const stats = await this.aggregate([
+    {
+      $match: { 
+        $or: [
+          { assignedTo: mongoose.Types.ObjectId(userId) },
+          { assignedBy: mongoose.Types.ObjectId(userId) }
+        ]
+      }
+    },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  const result = {
+    pending: 0,
+    'in-progress': 0,
+    completed: 0,
+    rejected: 0,
+    total: 0
+  };
+  
+  stats.forEach(stat => {
+    result[stat._id] = stat.count;
+    result.total += stat.count;
+  });
+  
+  return result;
+};
+
+// Static method to get tasks by category
+taskSchema.statics.getTasksByCategory = async function(userId) {
+  return await this.aggregate([
+    {
+      $match: { 
+        $or: [
+          { assignedTo: mongoose.Types.ObjectId(userId) },
+          { assignedBy: mongoose.Types.ObjectId(userId) }
+        ]
+      }
+    },
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+        completed: {
+          $sum: {
+            $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
+          }
+        }
+      }
+    }
+  ]);
+};
+
+// Static method to get overdue tasks
+taskSchema.statics.getOverdueTasks = async function(userId) {
+  return await this.find({
+    $or: [
+      { assignedTo: userId },
+      { assignedBy: userId }
+    ],
+    dueDate: { $lt: new Date() },
+    status: { $ne: 'completed' }
+  }).populate('assignedTo', 'name email')
+    .populate('assignedBy', 'name email');
+};
+
+// Middleware to update timestamps
+taskSchema.pre('save', function(next) {
+  if (this.isModified('status') && this.status === 'completed' && !this.completedAt) {
+    this.completedAt = new Date();
+  }
+  next();
+});
 
 module.exports = mongoose.model('Task', taskSchema);

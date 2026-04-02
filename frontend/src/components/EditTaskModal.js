@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { createTask } from '../services/taskService';
+import React, { useState, useEffect } from 'react';
+import { updateTask } from '../services/taskService';
 
-const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
+const EditTaskModal = ({ isOpen, onClose, task, onTaskUpdated }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
     priority: 'medium',
+    status: 'pending',
     dueDate: '',
     assignedTo: ''
   });
@@ -15,6 +16,21 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
 
   const categories = ['Development', 'Sales', 'Marketing', 'Design', 'Other'];
   const priorities = ['low', 'medium', 'high'];
+  const statuses = ['pending', 'in-progress', 'completed'];
+
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        title: task.title || '',
+        description: task.description || '',
+        category: task.category || '',
+        priority: task.priority || 'medium',
+        status: task.status || 'pending',
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+        assignedTo: task.assignedTo?.email || ''
+      });
+    }
+  }, [task]);
 
   const handleChange = (e) => {
     setFormData({
@@ -29,30 +45,22 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     setError('');
 
     try {
-      await createTask(formData);
-      onTaskCreated();
-      setFormData({
-        title: '',
-        description: '',
-        category: '',
-        priority: 'medium',
-        dueDate: '',
-        assignedTo: ''
-      });
+      await updateTask(task._id, formData);
+      onTaskUpdated();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create task');
+      setError(err.response?.data?.message || 'Failed to update task');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !task) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">Create New Task</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Edit Task</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -76,7 +84,6 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter task title"
             />
           </div>
 
@@ -88,7 +95,6 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               onChange={handleChange}
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter task description"
             />
           </div>
 
@@ -126,6 +132,23 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           </div>
 
           <div>
+            <label className="block text-gray-700 font-medium mb-2">Status *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {statuses.map(status => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="block text-gray-700 font-medium mb-2">Due Date *</label>
             <input
               type="date"
@@ -145,7 +168,6 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               value={formData.assignedTo}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="user@example.com"
             />
           </div>
 
@@ -162,7 +184,7 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Creating...' : 'Create Task'}
+              {loading ? 'Updating...' : 'Update Task'}
             </button>
           </div>
         </form>
@@ -171,4 +193,4 @@ const CreateTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   );
 };
 
-export default CreateTaskModal;
+export default EditTaskModal;

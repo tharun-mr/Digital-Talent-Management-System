@@ -1,7 +1,13 @@
+// frontend/src/contexts/TaskContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { taskAPI } from '../services/taskService';
-import { useAuth } from './AuthContext';
-import toast from 'react-hot-toast';
+import { 
+  getTasks, 
+  getTask, 
+  createTask, 
+  updateTask, 
+  deleteTask,
+  updateTaskStatus
+} from '../services/taskService';
 
 const TaskContext = createContext();
 
@@ -16,114 +22,153 @@ export const useTasks = () => {
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState(null);
-  const { user } = useAuth();
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      loadTasks();
-      loadStats();
-    }
-  }, [user]);
-
-  const loadTasks = async () => {
+  // Fetch all tasks
+  const fetchTasks = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data } = await taskAPI.getTasks();
-      setTasks(data.data);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
-      toast.error('Failed to load tasks');
+      const data = await getTasks(); // Changed from taskAPI.getTasks()
+      setTasks(data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch tasks');
+      console.error('Error fetching tasks:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStats = async () => {
+  // Get single task
+  const fetchTask = async (id) => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data } = await taskAPI.getTaskStats();
-      setStats(data.data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
+      const data = await getTask(id); // Changed from taskAPI.getTask()
+      return data;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch task');
+      console.error('Error fetching task:', err);
+      return null;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const createTask = async (taskData) => {
+  // Create task
+  const createNewTask = async (taskData) => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data } = await taskAPI.createTask(taskData);
-      setTasks([data.data, ...tasks]);
-      toast.success('Task created successfully!');
-      loadStats();
-      return { success: true, data: data.data };
-    } catch (error) {
-      const message = error.response?.data?.error || 'Failed to create task';
-      toast.error(message);
-      return { success: false, error: message };
+      const newTask = await createTask(taskData); // Changed from taskAPI.createTask()
+      setTasks(prevTasks => [newTask, ...prevTasks]);
+      return newTask;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create task');
+      console.error('Error creating task:', err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateTask = async (id, taskData) => {
+  // Update task
+  const updateExistingTask = async (id, taskData) => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data } = await taskAPI.updateTask(id, taskData);
-      setTasks(tasks.map(task => task._id === id ? data.data : task));
-      toast.success('Task updated successfully!');
-      loadStats();
-      return { success: true, data: data.data };
-    } catch (error) {
-      const message = error.response?.data?.error || 'Failed to update task';
-      toast.error(message);
-      return { success: false, error: message };
+      const updatedTask = await updateTask(id, taskData); // Changed from taskAPI.updateTask()
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === id ? updatedTask : task
+        )
+      );
+      return updatedTask;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task');
+      console.error('Error updating task:', err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteTask = async (id) => {
+  // Update task status
+  const updateTaskStatusOnly = async (id, status) => {
+    setLoading(true);
+    setError(null);
     try {
-      await taskAPI.deleteTask(id);
-      setTasks(tasks.filter(task => task._id !== id));
-      toast.success('Task deleted successfully!');
-      loadStats();
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.error || 'Failed to delete task';
-      toast.error(message);
-      return { success: false, error: message };
+      const updatedTask = await updateTaskStatus(id, status); // Changed from taskAPI.updateTaskStatus()
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === id ? updatedTask : task
+        )
+      );
+      return updatedTask;
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task status');
+      console.error('Error updating task status:', err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addComment = async (id, comment) => {
+  // Delete task
+  const deleteExistingTask = async (id) => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data } = await taskAPI.addComment(id, comment);
-      setTasks(tasks.map(task => task._id === id ? data.data : task));
-      toast.success('Comment added!');
-      return { success: true, data: data.data };
-    } catch (error) {
-      const message = error.response?.data?.error || 'Failed to add comment';
-      toast.error(message);
-      return { success: false, error: message };
+      await deleteTask(id); // Changed from taskAPI.deleteTask()
+      setTasks(prevTasks => prevTasks.filter(task => task._id !== id));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete task');
+      console.error('Error deleting task:', err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getTasksByStatus = async (status) => {
-    try {
-      const { data } = await taskAPI.getTasksByStatus(status);
-      return data.data;
-    } catch (error) {
-      console.error('Error loading tasks by status:', error);
-      return [];
-    }
+  // Get tasks by status
+  const getTasksByStatus = (status) => {
+    return tasks.filter(task => task.status === status);
   };
+
+  // Get statistics
+  const getStats = () => {
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.status === 'completed').length;
+    const inProgress = tasks.filter(t => t.status === 'in-progress').length;
+    const pending = tasks.filter(t => t.status === 'pending').length;
+    const rejected = tasks.filter(t => t.status === 'rejected').length;
+    
+    return {
+      total,
+      completed,
+      inProgress,
+      pending,
+      rejected,
+      completionRate: total > 0 ? ((completed / total) * 100).toFixed(2) : 0
+    };
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const value = {
     tasks,
     loading,
-    stats,
-    createTask,
-    updateTask,
-    deleteTask,
-    addComment,
+    error,
+    fetchTasks,
+    fetchTask,
+    createNewTask,
+    updateExistingTask,
+    updateTaskStatusOnly,
+    deleteExistingTask,
     getTasksByStatus,
-    refreshTasks: loadTasks,
-    refreshStats: loadStats
+    getStats
   };
 
   return (
