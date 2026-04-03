@@ -6,7 +6,16 @@ import api from '../services/api';
 
 const Tasks = () => {
   const { user } = useAuth();
-  const { tasks, loading, createTask, updateTask, deleteTask, addComment, getTasksByStatus, refreshTasks } = useTasks();
+  const {
+    tasks,
+    loading,
+    createNewTask,
+    updateExistingTask,
+    deleteExistingTask,
+    addComment,
+    getTasksByStatus,
+    fetchTasks
+  } = useTasks();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState('all');
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -23,7 +32,6 @@ const Tasks = () => {
 
   const isAdmin = user?.role === 'admin';
 
-  // Load users for admin
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
@@ -43,20 +51,19 @@ const Tasks = () => {
     }
   };
 
-  const filterTasks = async () => {
+  const filterTasks = () => {
     if (filter === 'all') {
       setFilteredTasks(tasks);
     } else {
-      const filtered = await getTasksByStatus(filter);
-      setFilteredTasks(filtered);
+      setFilteredTasks(getTasksByStatus(filter));
     }
   };
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const result = await createTask(formData);
-    if (result.success) {
+    try {
+      await createNewTask(formData);
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -66,18 +73,20 @@ const Tasks = () => {
         priority: 'medium',
         category: 'other'
       });
-      refreshTasks();
+      fetchTasks();
+    } catch (error) {
+      console.error('Error creating task:', error);
     }
     setSubmitting(false);
   };
 
   const handleUpdateStatus = async (taskId, newStatus) => {
-    await updateTask(taskId, { status: newStatus });
+    await updateExistingTask(taskId, { status: newStatus });
   };
 
   const handleDeleteTask = async (taskId) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-      await deleteTask(taskId);
+      await deleteExistingTask(taskId);
     }
   };
 
@@ -139,7 +148,7 @@ const Tasks = () => {
               {isAdmin ? 'Task Management' : 'My Tasks'}
             </h1>
             <p className="text-gray-600 mt-2">
-              {isAdmin 
+              {isAdmin
                 ? 'Create and manage tasks for your team members'
                 : `You have ${tasks.filter(t => t.status !== 'completed').length} active tasks`}
             </p>
@@ -184,7 +193,7 @@ const Tasks = () => {
             <div className="text-6xl mb-4">📋</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
             <p className="text-gray-600">
-              {isAdmin 
+              {isAdmin
                 ? 'Create your first task to get started'
                 : 'You have no tasks assigned yet. Check back later!'}
             </p>
@@ -228,7 +237,7 @@ const Tasks = () => {
                     <div>
                       <p className="text-gray-500">Status:</p>
                       <p className={`font-medium ${getStatusColor(task.status)}`}>
-                        {task.status === 'in-progress' ? 'In Progress' : 
+                        {task.status === 'in-progress' ? 'In Progress' :
                          task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                       </p>
                     </div>
@@ -253,7 +262,6 @@ const Tasks = () => {
                         </>
                       )}
                     </div>
-                    
                     <div className="flex space-x-2">
                       {isAdmin && (
                         <button
@@ -278,100 +286,44 @@ const Tasks = () => {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
+              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
-
             <form onSubmit={handleCreateTask} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Enter task title"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Task Title *</label>
+                <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter task title" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  required
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Enter task description"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter task description" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Assign To *
-                </label>
-                <select
-                  value={formData.assignedTo}
-                  onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assign To *</label>
+                <select value={formData.assignedTo} onChange={(e) => setFormData({...formData, assignedTo: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                   <option value="">Select user</option>
                   {users.map(user => (
-                    <option key={user._id} value={user._id}>
-                      {user.name} ({user.email})
-                    </option>
+                    <option key={user._id} value={user._id}>{user.name} ({user.email})</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
+                <input type="date" value={formData.dueDate} onChange={(e) => setFormData({...formData, dueDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority
-                </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <select value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                   <option value="development">Development</option>
                   <option value="design">Design</option>
                   <option value="marketing">Marketing</option>
@@ -380,20 +332,9 @@ const Tasks = () => {
                   <option value="other">Other</option>
                 </select>
               </div>
-
               <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-4 py-2 rounded-lg hover:shadow-lg disabled:opacity-50"
-                >
+                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={submitting} className="flex-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-4 py-2 rounded-lg hover:shadow-lg disabled:opacity-50">
                   {submitting ? 'Creating...' : 'Create Task'}
                 </button>
               </div>

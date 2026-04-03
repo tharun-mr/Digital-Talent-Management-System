@@ -29,3 +29,8 @@ export const updateTaskStatus = async (id, status) => {
   const response = await api.patch(`/tasks/${id}/status`, { status });
   return response.data.data;
 };
+
+export const addCommentToTask = async (taskId, comment) => {
+  const response = await api.post(`/tasks/${taskId}/comments`, { comment });
+  return response.data.data;
+};
