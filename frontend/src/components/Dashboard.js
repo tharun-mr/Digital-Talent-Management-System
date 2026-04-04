@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTasks } from '../contexts/TaskContext';
-import CreateTaskModal from './CreateTaskModal';
-import EditTaskModal from './EditTaskModal';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { tasks, loading, fetchTasks, updateTaskStatusOnly } = useTasks();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
 
   const isAdmin = user?.role === 'admin';
 
@@ -31,11 +26,6 @@ const Dashboard = () => {
   ];
 
   const recentTasks = tasks.slice(0, 5);
-
-  const handleEditTask = (task) => {
-    setSelectedTask(task);
-    setShowEditModal(true);
-  };
 
   const handleStatusChange = async (taskId, newStatus) => {
     await updateTaskStatusOnly(taskId, newStatus);
@@ -85,15 +75,6 @@ const Dashboard = () => {
         <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Recent Tasks</h2>
-            {/* Create button only for admin */}
-            {isAdmin && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                + Create New Task
-              </button>
-            )}
           </div>
 
           <div className="space-y-3">
@@ -123,7 +104,6 @@ const Dashboard = () => {
                     <p className="text-gray-500 text-xs">Assigned to: {task.assignedTo?.name || 'Unassigned'}</p>
                     <p className="text-gray-500 text-xs">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
                   </div>
-                  {/* Edit button removed — status dropdown only for admin */}
                   {isAdmin && (
                     <div className="flex gap-2">
                       <select
@@ -144,7 +124,7 @@ const Dashboard = () => {
 
           {recentTasks.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No tasks yet.{isAdmin && ' Click "Create New Task" to get started.'}
+              No tasks yet.
             </div>
           )}
 
@@ -225,14 +205,6 @@ const Dashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                >
-                  + Create New Task
-                </button>
-              )}
               <button className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
                 Mark Tasks Complete
               </button>
@@ -246,29 +218,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
-      {/* Modals - only mounted for admin */}
-      {isAdmin && (
-        <>
-          <CreateTaskModal
-            isOpen={showCreateModal}
-            onClose={() => setShowCreateModal(false)}
-            onTaskCreated={() => {
-              fetchTasks();
-              setShowCreateModal(false);
-            }}
-          />
-          <EditTaskModal
-            isOpen={showEditModal}
-            onClose={() => setShowEditModal(false)}
-            task={selectedTask}
-            onTaskUpdated={() => {
-              fetchTasks();
-              setShowEditModal(false);
-            }}
-          />
-        </>
-      )}
     </div>
   );
 };
