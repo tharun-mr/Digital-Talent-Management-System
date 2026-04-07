@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { tasks, loading, fetchTasks, updateTaskStatusOnly } = useTasks();
+  const { tasks, loading, fetchTasks } = useTasks();
 
   const isAdmin = user?.role === 'admin';
 
@@ -26,11 +26,6 @@ const Dashboard = () => {
   ];
 
   const recentTasks = tasks.slice(0, 5);
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    await updateTaskStatusOnly(taskId, newStatus);
-    fetchTasks();
-  };
 
   if (loading) {
     return (
@@ -104,19 +99,6 @@ const Dashboard = () => {
                     <p className="text-gray-500 text-xs">Assigned to: {task.assignedTo?.name || 'Unassigned'}</p>
                     <p className="text-gray-500 text-xs">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
                   </div>
-                  {isAdmin && (
-                    <div className="flex gap-2">
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                        className="text-sm border rounded px-2 py-1"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -199,22 +181,6 @@ const Dashboard = () => {
             <button className="mt-3 text-blue-600 hover:text-blue-800 text-sm">
               View all pending tasks &gt;
             </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <button className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-                Mark Tasks Complete
-              </button>
-              <button className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-                Edit Profile
-              </button>
-              <button className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-                View Analytics
-              </button>
-            </div>
           </div>
         </div>
       </div>

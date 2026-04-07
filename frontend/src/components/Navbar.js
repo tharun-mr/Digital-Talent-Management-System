@@ -33,8 +33,7 @@ const Navbar = () => {
 
   const navLinks = [
   { path: '/dashboard', name: 'Dashboard', icon: HomeIcon },
-  { path: '/tasks', name: 'Tasks', icon: ClipboardDocumentListIcon }, // Add this line
-  { path: '/analytics', name: 'Analytics', icon: ChartBarIcon },
+  { path: '/tasks', name: 'Tasks', icon: ClipboardDocumentListIcon } // Add this line
 ];
 
   return (

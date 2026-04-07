@@ -8,6 +8,8 @@
   import Login from './components/Login';
   import Dashboard from './components/Dashboard';
   import Tasks from './components/Tasks'; // Add this import
+  import ProfilePage from './components/Profilepage'; // Add this import
+  import SettingsPage from './components/Settingspage';
 
   // Protected Route Component
   const ProtectedRoute = ({ children }) => {
@@ -80,6 +82,19 @@
           <Route path="/tasks" element={
             <ProtectedRoute>
               <Tasks />
+            </ProtectedRoute>
+          } />
+
+          {/* Add Profile Route */}
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           } />
         </Routes>
